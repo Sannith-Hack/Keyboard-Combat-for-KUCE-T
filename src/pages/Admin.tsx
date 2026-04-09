@@ -78,13 +78,17 @@ const Admin: React.FC = () => {
 
   const handleCreateCompetition = async (e: React.FormEvent) => {
     e.preventDefault();
+    // Convert local datetime-local value to ISO string for Supabase
+    const scheduledStart = new Date(newCompTime).toISOString();
+    
     const { error } = await supabase
       .from('competitions')
-      .insert([{ name: newCompName, scheduled_start: newCompTime }]);
+      .insert([{ name: newCompName, scheduled_start: scheduledStart }]);
 
     if (!error) {
       setShowScheduleModal(false);
       setNewCompName('');
+      setNewCompTime('');
       fetchData();
     }
   };

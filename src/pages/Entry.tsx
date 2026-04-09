@@ -32,9 +32,9 @@ const Entry: React.FC = () => {
       if (data) {
         setParticipant(data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error registering participant:', error);
-      alert('Registration failed. Please try again.');
+      alert(`Registration failed: ${error.message || 'Please try again.'}`);
     } finally {
       setLoading(false);
     }
