@@ -6,14 +6,31 @@ import Break from './components/Break';
 import Results from './pages/Results';
 import WaitingRoom from './components/WaitingRoom';
 import { supabase } from './lib/supabase';
-import { WARMUP_TEXT, LEVEL_1_PARAGRAPHS, LEVEL_2_CODE, LEVEL_3_PRECISION } from './data/content';
+import { LEVEL_1_PARAGRAPHS, LEVEL_2_CODE, LEVEL_3_PRECISION } from './data/content';
 
 function App() {
   const { currentLevel, nextLevel, addAttempt, setActiveCompetition, activeCompetition, levelTexts, setLevelText } = useGameStore();
 
+  // 1. Sync Competition Status & Auto-Live Logic
   useEffect(() => {
-    const syncActiveCompetition = async () => {
-      // Fetch LIVE competition first, then DRAFT if no live exists
+    const syncAndAutoLive = async () => {
+      // Check for any scheduled competition that should be live by now
+      const now = new Date().toISOString();
+      const { data: upcoming } = await supabase
+        .from('competitions')
+        .select('*')
+        .eq('status', 'draft')
+        .lte('scheduled_start', now)
+        .order('scheduled_start', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      if (upcoming) {
+        // Auto-Live: Update status to live in DB
+        await supabase.from('competitions').update({ status: 'live' }).eq('id', upcoming.id);
+      }
+
+      // Fetch the current Live competition
       const { data: liveData } = await supabase
         .from('competitions')
         .select('*')
@@ -25,6 +42,7 @@ function App() {
         return;
       }
 
+      // If no live, fetch the next draft
       const { data: draftData } = await supabase
         .from('competitions')
         .select('*')
@@ -36,86 +54,64 @@ function App() {
       setActiveCompetition(draftData as any);
     };
 
-    syncActiveCompetition();
+    syncAndAutoLive();
+    const interval = setInterval(syncAndAutoLive, 10000); // Check every 10s for auto-live
 
     const channel = supabase
       .channel('public:competitions')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'competitions' }, syncActiveCompetition)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'competitions' }, syncAndAutoLive)
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { 
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+    };
   }, [setActiveCompetition]);
+
+  // 2. Select Level Text in a Side Effect (Fixes the "Cannot update App while rendering" error)
+  useEffect(() => {
+    if (currentLevel === 0 || currentLevel % 2 === 0) return; // Only for typing levels (1, 3, 5)
+
+    if (!levelTexts[currentLevel]) {
+      let selectedText = "";
+      if (currentLevel === 1) selectedText = LEVEL_1_PARAGRAPHS[Math.floor(Math.random() * LEVEL_1_PARAGRAPHS.length)];
+      else if (currentLevel === 3) selectedText = LEVEL_2_CODE[Math.floor(Math.random() * LEVEL_2_CODE.length)];
+      else if (currentLevel === 5) selectedText = LEVEL_3_PRECISION[Math.floor(Math.random() * LEVEL_3_PRECISION.length)];
+      
+      if (selectedText) setLevelText(currentLevel, selectedText);
+    }
+  }, [currentLevel, levelTexts, setLevelText]);
 
   const handleComplete = (wpm: number, accuracy: number, timeTaken: number, combatScore: number) => {
     addAttempt({ level: currentLevel, wpm, accuracy, timeTaken, combatScore });
     nextLevel();
   };
 
-  const getLevelText = (level: number) => {
-    if (levelTexts[level]) return levelTexts[level];
-
-    let selectedText = "";
-    if (level === 1) selectedText = WARMUP_TEXT;
-    else if (level === 2) selectedText = LEVEL_1_PARAGRAPHS[Math.floor(Math.random() * LEVEL_1_PARAGRAPHS.length)];
-    else if (level === 4) selectedText = LEVEL_2_CODE[Math.floor(Math.random() * LEVEL_2_CODE.length)];
-    else if (level === 6) selectedText = LEVEL_3_PRECISION[Math.floor(Math.random() * LEVEL_3_PRECISION.length)];
-
-    if (selectedText) {
-      setLevelText(level, selectedText);
-    }
-    return selectedText;
-  };
-
   const renderCurrentStep = () => {
-    // If level 1 but competition is not live yet, show waiting room
     if (currentLevel === 1 && activeCompetition?.status !== 'live') {
       return <WaitingRoom />;
     }
 
+    const currentText = levelTexts[currentLevel];
+
     switch (currentLevel) {
-      case 0:
-        return <Entry />;
+      case 0: return <Entry />;
       case 1:
-        return (
-          <TypingArea
-            title="Warmup"
-            text={getLevelText(1)}
-            onComplete={handleComplete}
-            isWarmup
-          />
-        );
-      case 2:
-        return (
-          <TypingArea
-            title="Level 1: Paragraphs"
-            text={getLevelText(2)}
-            onComplete={handleComplete}
-          />
-        );
+        return currentText ? (
+          <TypingArea key={`l1-${currentText.substring(0,5)}`} title="Level 1: Paragraphs" text={currentText} onComplete={handleComplete} />
+        ) : <div className="animate-pulse italic text-gray-500">Loading Paragraph...</div>;
+      case 2: return <Break onComplete={nextLevel} duration={10} />;
       case 3:
-        return <Break onComplete={nextLevel} duration={10} />;
-      case 4:
-        return (
-          <TypingArea
-            title="Level 2: Code Typing"
-            text={getLevelText(4)}
-            onComplete={handleComplete}
-          />
-        );
+        return currentText ? (
+          <TypingArea key={`l2-${currentText.substring(0,5)}`} title="Level 2: Code Typing" text={currentText} onComplete={handleComplete} />
+        ) : <div className="animate-pulse italic text-gray-500">Loading Code...</div>;
+      case 4: return <Break onComplete={nextLevel} duration={10} />;
       case 5:
-        return <Break onComplete={nextLevel} duration={10} />;
-      case 6:
-        return (
-          <TypingArea
-            title="Level 3: Precision"
-            text={getLevelText(6)}
-            onComplete={handleComplete}
-          />
-        );
-      case 7:
-        return <Results />;
-      default:
-        return <Entry />;
+        return currentText ? (
+          <TypingArea key={`l3-${currentText.substring(0,5)}`} title="Level 3: Precision" text={currentText} onComplete={handleComplete} />
+        ) : <div className="animate-pulse italic text-gray-500">Loading Symbols...</div>;
+      case 6: return <Results />;
+      default: return <Entry />;
     }
   };
 
@@ -130,17 +126,15 @@ function App() {
           <h1 className="text-4xl font-black tracking-tighter uppercase italic">
             Keyboard <span className="text-blue-500">Combat</span>
           </h1>
-          <img src="/assets/ku-college-logo.png" alt="KU College logo.png" className="h-16 w-16" />
+          <img src="/assets/ku-college-logo.png" alt="KU College Logo" className="h-16 w-16" />
         </div>
         <p className="text-gray-400 font-bold uppercase text-xs tracking-[0.3em]">
           Kakatiya University of Engineering and Technology
         </p>
       </header>
-
       <main className="w-full max-w-5xl flex justify-center">
         {renderCurrentStep()}
       </main>
-
       <footer className="mt-12 text-gray-500 text-xs flex gap-8 items-center">
         <img src="/assets/Naac_A+.png" alt="NAAC A+" className="h-10 grayscale opacity-50" />
         <p>© 2026 KU College of Engineering and Technology. All Rights Reserved.</p>
