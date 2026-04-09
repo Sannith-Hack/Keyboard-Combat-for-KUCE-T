@@ -38,8 +38,6 @@ const Admin: React.FC = () => {
   }, [isAdminAuthenticated, navigate]);
 
   const fetchData = async () => {
-    setLoading(true);
-    
     // Fetch Competitions
     const { data: comps } = await supabase
       .from('competitions')
@@ -48,7 +46,7 @@ const Admin: React.FC = () => {
     
     setCompetitions(comps || []);
 
-    // Fetch Leaderboard for active competition
+    // Fetch Leaderboard for active view
     if (activeCompetition) {
       const { data: results } = await supabase
         .from('results')
@@ -80,11 +78,9 @@ const Admin: React.FC = () => {
 
   const handleCreateCompetition = async (e: React.FormEvent) => {
     e.preventDefault();
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('competitions')
-      .insert([{ name: newCompName, scheduled_start: newCompTime }])
-      .select()
-      .single();
+      .insert([{ name: newCompName, scheduled_start: newCompTime }]);
 
     if (!error) {
       setShowScheduleModal(false);
@@ -94,13 +90,31 @@ const Admin: React.FC = () => {
   };
 
   const updateStatus = async (id: string, status: 'draft' | 'live' | 'ended') => {
-    await supabase.from('competitions').update({ status }).eq('id', id);
     if (status === 'live') {
-      const comp = competitions.find(c => c.id === id);
-      if (comp) setActiveCompetition({ ...comp, status });
+      // ENFORCE ONLY ONE LIVE: End all other live competitions first
+      await supabase
+        .from('competitions')
+        .update({ status: 'ended' })
+        .eq('status', 'live');
+    }
+
+    const { error } = await supabase
+      .from('competitions')
+      .update({ status })
+      .eq('id', id);
+
+    if (error) {
+      alert('Error updating status: ' + error.message);
+      return;
+    }
+
+    const comp = competitions.find(c => c.id === id);
+    if (status === 'live' && comp) {
+      setActiveCompetition({ ...comp, status });
     } else if (status === 'ended' && activeCompetition?.id === id) {
       setActiveCompetition(null);
     }
+    
     fetchData();
   };
 
@@ -135,12 +149,12 @@ const Admin: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Competition Management */}
         <div className="lg:col-span-1 space-y-6">
-          <h2 className="text-xl font-black uppercase text-gray-400 mb-4 px-2">Scheduled Events</h2>
+          <h2 className="text-xl font-black uppercase text-gray-400 mb-4 px-2 text-left">Scheduled Events</h2>
           <div className="space-y-4">
             {competitions.map((comp) => (
               <div 
                 key={comp.id} 
-                className={`p-6 rounded-2xl border transition-all ${activeCompetition?.id === comp.id ? 'bg-blue-600/10 border-blue-500 shadow-lg shadow-blue-500/5' : 'bg-gray-900 border-gray-800 hover:border-gray-700'}`}
+                className={`p-6 rounded-2xl border transition-all text-left ${activeCompetition?.id === comp.id ? 'bg-blue-600/10 border-blue-500 shadow-lg shadow-blue-500/5' : 'bg-gray-900 border-gray-800 hover:border-gray-700'}`}
               >
                 <div className="flex justify-between items-start mb-4">
                   <div>
@@ -160,19 +174,20 @@ const Admin: React.FC = () => {
                 <div className="grid grid-cols-3 gap-2">
                   <button 
                     disabled={comp.status === 'live'}
-                    onClick={() => updateStatus(comp.id, 'live')}
+                    onClick={(e) => { e.stopPropagation(); updateStatus(comp.id, 'live'); }}
                     className="py-2 bg-green-600 hover:bg-green-500 disabled:opacity-30 rounded-lg text-xs font-bold transition-all"
                   >
                     GO LIVE
                   </button>
                   <button 
-                    onClick={() => updateStatus(comp.id, 'ended')}
-                    className="py-2 bg-red-600 hover:bg-red-500 rounded-lg text-xs font-bold transition-all"
+                    disabled={comp.status === 'ended'}
+                    onClick={(e) => { e.stopPropagation(); updateStatus(comp.id, 'ended'); }}
+                    className="py-2 bg-red-600 hover:bg-red-500 disabled:opacity-30 rounded-lg text-xs font-bold transition-all"
                   >
                     END
                   </button>
                   <button 
-                    onClick={() => setActiveCompetition(comp)}
+                    onClick={(e) => { e.stopPropagation(); setActiveCompetition(comp); }}
                     className="py-2 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs font-bold transition-all"
                   >
                     VIEW
@@ -186,15 +201,10 @@ const Admin: React.FC = () => {
         {/* Live Leaderboard */}
         <div className="lg:col-span-2">
           <div className="flex justify-between items-end mb-4 px-2">
-            <div>
+            <div className="text-left">
               <h2 className="text-xl font-black uppercase text-gray-400">Leaderboard</h2>
               <p className="text-sm text-blue-400 font-bold">{activeCompetition?.name || 'Select a competition to view'}</p>
             </div>
-            {activeCompetition && (
-              <button className="text-xs font-black text-blue-500 hover:text-blue-400 uppercase tracking-widest">
-                Full Screen Broadcast ↗
-              </button>
-            )}
           </div>
 
           <div className="bg-gray-900 rounded-3xl border border-gray-800 overflow-hidden shadow-2xl">
@@ -219,10 +229,10 @@ const Admin: React.FC = () => {
                         {index + 1}
                       </span>
                     </td>
-                    <td className="p-5">
+                    <td className="p-5 text-left">
                       <div className="font-black text-gray-100">{entry.participants.name}</div>
                     </td>
-                    <td className="p-5 font-mono text-sm text-gray-400">{entry.participants.roll_number}</td>
+                    <td className="p-5 font-mono text-sm text-gray-400 text-left">{entry.participants.roll_number}</td>
                     <td className="p-5 text-right font-black text-blue-400 text-2xl tracking-tighter">{entry.avg_wpm.toFixed(2)}</td>
                   </tr>
                 ))}
@@ -245,7 +255,7 @@ const Admin: React.FC = () => {
       {/* Schedule Modal */}
       {showScheduleModal && (
         <div className="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50">
-          <div className="bg-gray-900 p-8 rounded-3xl border border-gray-800 max-w-md w-full shadow-3xl">
+          <div className="bg-gray-900 p-8 rounded-3xl border border-gray-800 max-w-md w-full shadow-3xl text-left">
             <h2 className="text-2xl font-black text-blue-500 uppercase italic mb-6">Schedule Competition</h2>
             <form onSubmit={handleCreateCompetition} className="space-y-4">
               <div>

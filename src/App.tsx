@@ -1,12 +1,36 @@
+import { useEffect } from 'react';
 import { useGameStore } from './store/useGameStore';
 import Entry from './pages/Entry';
 import TypingArea from './components/TypingArea';
 import Break from './components/Break';
 import Results from './pages/Results';
+import { supabase } from './lib/supabase';
 import { WARMUP_TEXT, LEVEL_1_PARAGRAPHS, LEVEL_2_CODE, LEVEL_3_PRECISION } from './data/content';
 
 function App() {
-  const { currentLevel, nextLevel, addAttempt } = useGameStore();
+  const { currentLevel, nextLevel, addAttempt, setActiveCompetition, activeCompetition } = useGameStore();
+
+  useEffect(() => {
+    const syncActiveCompetition = async () => {
+      const { data } = await supabase
+        .from('competitions')
+        .select('*')
+        .eq('status', 'live')
+        .maybeSingle();
+      
+      setActiveCompetition(data as any);
+    };
+
+    syncActiveCompetition();
+
+    // Listen for competition status changes to auto-update student view
+    const channel = supabase
+      .channel('public:competitions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'competitions' }, syncActiveCompetition)
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [setActiveCompetition]);
 
   const handleComplete = (wpm: number, accuracy: number, timeTaken: number, combatScore: number) => {
     addAttempt({ level: currentLevel, wpm, accuracy, timeTaken, combatScore });
@@ -72,7 +96,7 @@ function App() {
           <h1 className="text-4xl font-black tracking-tighter uppercase italic">
             Keyboard <span className="text-blue-500">Combat</span>
           </h1>
-          <img src="/assets/ku-college-logo.png" alt="KU College Logo" className="h-16 w-16" />
+          <img src="/assets/ku-college-logo.png" alt="KU College logo.png" className="h-16 w-16" />
         </div>
         <p className="text-gray-400 font-bold uppercase text-xs tracking-[0.3em]">
           Kakatiya University of Engineering and Technology
