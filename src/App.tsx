@@ -4,6 +4,7 @@ import Entry from './pages/Entry';
 import TypingArea from './components/TypingArea';
 import Break from './components/Break';
 import Results from './pages/Results';
+import WaitingRoom from './components/WaitingRoom';
 import { supabase } from './lib/supabase';
 import { WARMUP_TEXT, LEVEL_1_PARAGRAPHS, LEVEL_2_CODE, LEVEL_3_PRECISION } from './data/content';
 
@@ -12,13 +13,27 @@ function App() {
 
   useEffect(() => {
     const syncActiveCompetition = async () => {
-      const { data } = await supabase
+      // Fetch LIVE competition first, then DRAFT if no live exists
+      const { data: liveData } = await supabase
         .from('competitions')
         .select('*')
         .eq('status', 'live')
         .maybeSingle();
       
-      setActiveCompetition(data as any);
+      if (liveData) {
+        setActiveCompetition(liveData as any);
+        return;
+      }
+
+      const { data: draftData } = await supabase
+        .from('competitions')
+        .select('*')
+        .eq('status', 'draft')
+        .order('scheduled_start', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      setActiveCompetition(draftData as any);
     };
 
     syncActiveCompetition();
@@ -52,6 +67,11 @@ function App() {
   };
 
   const renderCurrentStep = () => {
+    // If level 1 but competition is not live yet, show waiting room
+    if (currentLevel === 1 && activeCompetition?.status !== 'live') {
+      return <WaitingRoom />;
+    }
+
     switch (currentLevel) {
       case 0:
         return <Entry />;
