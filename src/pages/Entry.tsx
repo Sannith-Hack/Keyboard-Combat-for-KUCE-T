@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { supabase } from '../lib/supabase';
-
 const Entry: React.FC = () => {
+  const { setParticipant, activeCompetition } = useGameStore();
   const [formData, setFormData] = useState({
     name: '',
     roll_number: '',
@@ -10,16 +10,19 @@ const Entry: React.FC = () => {
     college: 'Kakatiya University of Engineering and Technology',
   });
   const [loading, setLoading] = useState(false);
-  const setParticipant = useGameStore((state) => state.setParticipant);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!activeCompetition) {
+      alert('No live competition found. Please wait for the coordinator to start the session.');
+      return;
+    }
     setLoading(true);
 
     try {
       const { data, error } = await supabase
         .from('participants')
-        .insert([formData])
+        .insert([{ ...formData, competition_id: activeCompetition.id }])
         .select()
         .single();
 
@@ -36,10 +39,25 @@ const Entry: React.FC = () => {
     }
   };
 
+  if (!activeCompetition) {
+    return (
+      <div className="max-w-md w-full p-10 bg-gray-800/80 backdrop-blur-md rounded-3xl shadow-2xl border border-gray-700 text-center">
+        <div className="w-20 h-20 bg-gray-900 rounded-full flex items-center justify-center mx-auto mb-6 border border-gray-700">
+          <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse"></div>
+        </div>
+        <h2 className="text-2xl font-black text-white uppercase mb-2">System Offline</h2>
+        <p className="text-gray-400 text-sm italic">The competition hasn't started yet. Please wait for the announcement.</p>
+      </div>
+    );
+  }
+
   return (
-    <div className="max-w-md w-full p-8 bg-gray-800 rounded-xl shadow-2xl">
-      <h2 className="text-3xl font-bold mb-6 text-center text-blue-400">Join the Combat</h2>
-      <form onSubmit={handleSubmit} className="space-y-4 text-left">
+    <div className="max-w-md w-full p-8 bg-gray-800 rounded-xl shadow-2xl border border-gray-700">
+      <div className="mb-6">
+        <h2 className="text-3xl font-black text-center text-blue-400 uppercase italic tracking-tighter">Join the Combat</h2>
+        <p className="text-center text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">Live: {activeCompetition.name}</p>
+      </div>
+...
         <div>
           <label className="block text-sm font-medium mb-1">Full Name</label>
           <input

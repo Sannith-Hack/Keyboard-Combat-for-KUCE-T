@@ -4,9 +4,10 @@ import { persist } from 'zustand/middleware';
 interface Participant {
   id: string;
   name: string;
+  roll_number: string;
   email: string;
   college: string;
-  roll_number: string;
+  competition_id?: string;
 }
 
 interface Attempt {
@@ -15,14 +16,27 @@ interface Attempt {
   accuracy: number;
   timeTaken: number;
   combatScore: number;
+  competition_id?: string;
+}
+
+interface Competition {
+  id: string;
+  name: string;
+  status: 'draft' | 'live' | 'ended';
+  scheduled_start: string;
 }
 
 interface GameState {
+  // Participant State
   participant: Participant | null;
   currentLevel: number;
   attempts: Attempt[];
   isGameComplete: boolean;
   hasSaved: boolean;
+  
+  // Admin & Competition State
+  isAdminAuthenticated: boolean;
+  activeCompetition: Competition | null;
   
   // Actions
   setParticipant: (participant: Participant) => void;
@@ -31,16 +45,24 @@ interface GameState {
   completeGame: () => void;
   setHasSaved: (val: boolean) => void;
   resetGame: () => void;
+  
+  // Admin Actions
+  login: (user: string, pass: string) => boolean;
+  logout: () => void;
+  setActiveCompetition: (comp: Competition | null) => void;
 }
 
 export const useGameStore = create<GameState>()(
   persist(
     (set) => ({
       participant: null,
-      currentLevel: 0, // 0: Entry, 1: Warmup, 2: Paragraph, 3: Break, 4: Code, 5: Break, 6: Precision, 7: Results
+      currentLevel: 0,
       attempts: [],
       isGameComplete: false,
       hasSaved: false,
+      
+      isAdminAuthenticated: false,
+      activeCompetition: null,
 
       setParticipant: (participant) => set({ participant, currentLevel: 1 }),
       nextLevel: () => set((state) => ({ currentLevel: state.currentLevel + 1 })),
@@ -56,9 +78,29 @@ export const useGameStore = create<GameState>()(
         isGameComplete: false,
         hasSaved: false
       }),
+
+      login: (user, pass) => {
+        const adminUser = import.meta.env.VITE_ADMIN_USER;
+        const adminPass = import.meta.env.VITE_ADMIN_PASS;
+        if (user === adminUser && pass === adminPass) {
+          set({ isAdminAuthenticated: true });
+          return true;
+        }
+        return false;
+      },
+      logout: () => set({ isAdminAuthenticated: false }),
+      setActiveCompetition: (comp) => set({ activeCompetition: comp }),
     }),
     {
       name: 'keyboard-combat-storage',
+      partialize: (state) => ({ 
+        participant: state.participant,
+        currentLevel: state.currentLevel,
+        attempts: state.attempts,
+        isGameComplete: state.isGameComplete,
+        isAdminAuthenticated: state.isAdminAuthenticated,
+        activeCompetition: state.activeCompetition
+      }),
     }
   )
 );

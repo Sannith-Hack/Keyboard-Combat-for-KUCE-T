@@ -24,6 +24,7 @@ const Results: React.FC = () => {
         const { error: attemptError } = await supabase.from('attempts').insert(
           attempts.map(a => ({
             participant_id: participant.id,
+            competition_id: participant.competition_id,
             level: a.level,
             wpm: a.wpm,
             accuracy: a.accuracy,
@@ -35,6 +36,7 @@ const Results: React.FC = () => {
 
         const { error: resultError } = await supabase.from('results').insert([{
           participant_id: participant.id,
+          competition_id: participant.competition_id,
           level1_wpm: level1?.wpm || 0,
           level2_wpm: level2?.wpm || 0,
           level3_wpm: level3?.wpm || 0,
