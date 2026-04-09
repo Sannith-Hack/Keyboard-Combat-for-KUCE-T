@@ -88,13 +88,17 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, onComplete, title, isWarm
           }
           
           return (
-            <span key={index} className="relative inline-block min-w-[0.6em]">
-              {isCurrent && (
+            <span key={index} className="relative inline">
+              {isCurrent && char !== '\n' && (
                 <span className="absolute left-0 top-0 w-[2px] h-full bg-blue-500 animate-pulse" />
               )}
-              <span className={`${color} transition-colors duration-100`}>
-                {char === '\n' ? '↵\n' : char}
-              </span>
+              {char === '\n' ? (
+                <span className={`block ${color}`}>↵</span>
+              ) : (
+                <span className={`${color} transition-colors duration-100 inline-block min-w-[0.6em]`}>
+                  {char === ' ' ? '\u00A0' : char}
+                </span>
+              )}
             </span>
           );
         })}
