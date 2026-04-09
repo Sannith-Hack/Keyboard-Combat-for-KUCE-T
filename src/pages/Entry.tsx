@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { supabase } from '../lib/supabase';
+
 const Entry: React.FC = () => {
   const { setParticipant, activeCompetition } = useGameStore();
   const [formData, setFormData] = useState({
@@ -57,7 +58,8 @@ const Entry: React.FC = () => {
         <h2 className="text-3xl font-black text-center text-blue-400 uppercase italic tracking-tighter">Join the Combat</h2>
         <p className="text-center text-gray-500 text-[10px] font-bold uppercase tracking-widest mt-1">Live: {activeCompetition.name}</p>
       </div>
-...
+
+      <form onSubmit={handleSubmit} className="space-y-4 text-left">
         <div>
           <label className="block text-sm font-medium mb-1">Full Name</label>
           <input
