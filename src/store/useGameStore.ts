@@ -33,6 +33,7 @@ interface GameState {
   attempts: Attempt[];
   isGameComplete: boolean;
   hasSaved: boolean;
+  levelTexts: { [key: number]: string };
   
   // Admin & Competition State
   isAdminAuthenticated: boolean;
@@ -45,6 +46,7 @@ interface GameState {
   completeGame: () => void;
   setHasSaved: (val: boolean) => void;
   resetGame: () => void;
+  setLevelText: (level: number, text: string) => void;
   
   // Admin Actions
   login: (user: string, pass: string) => boolean;
@@ -60,6 +62,7 @@ export const useGameStore = create<GameState>()(
       attempts: [],
       isGameComplete: false,
       hasSaved: false,
+      levelTexts: {},
       
       isAdminAuthenticated: false,
       activeCompetition: null,
@@ -71,12 +74,16 @@ export const useGameStore = create<GameState>()(
       })),
       completeGame: () => set({ isGameComplete: true }),
       setHasSaved: (val) => set({ hasSaved: val }),
+      setLevelText: (level, text) => set((state) => ({
+        levelTexts: { ...state.levelTexts, [level]: text }
+      })),
       resetGame: () => set({ 
         participant: null, 
         currentLevel: 0, 
         attempts: [], 
         isGameComplete: false,
-        hasSaved: false
+        hasSaved: false,
+        levelTexts: {}
       }),
 
       login: (user, pass) => {
@@ -99,7 +106,8 @@ export const useGameStore = create<GameState>()(
         attempts: state.attempts,
         isGameComplete: state.isGameComplete,
         isAdminAuthenticated: state.isAdminAuthenticated,
-        activeCompetition: state.activeCompetition
+        activeCompetition: state.activeCompetition,
+        levelTexts: state.levelTexts
       }),
     }
   )

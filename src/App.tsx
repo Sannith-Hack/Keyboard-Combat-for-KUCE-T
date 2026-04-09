@@ -8,7 +8,7 @@ import { supabase } from './lib/supabase';
 import { WARMUP_TEXT, LEVEL_1_PARAGRAPHS, LEVEL_2_CODE, LEVEL_3_PRECISION } from './data/content';
 
 function App() {
-  const { currentLevel, nextLevel, addAttempt, setActiveCompetition, activeCompetition } = useGameStore();
+  const { currentLevel, nextLevel, addAttempt, setActiveCompetition, activeCompetition, levelTexts, setLevelText } = useGameStore();
 
   useEffect(() => {
     const syncActiveCompetition = async () => {
@@ -23,7 +23,6 @@ function App() {
 
     syncActiveCompetition();
 
-    // Listen for competition status changes to auto-update student view
     const channel = supabase
       .channel('public:competitions')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'competitions' }, syncActiveCompetition)
@@ -37,6 +36,21 @@ function App() {
     nextLevel();
   };
 
+  const getLevelText = (level: number) => {
+    if (levelTexts[level]) return levelTexts[level];
+
+    let selectedText = "";
+    if (level === 1) selectedText = WARMUP_TEXT;
+    else if (level === 2) selectedText = LEVEL_1_PARAGRAPHS[Math.floor(Math.random() * LEVEL_1_PARAGRAPHS.length)];
+    else if (level === 4) selectedText = LEVEL_2_CODE[Math.floor(Math.random() * LEVEL_2_CODE.length)];
+    else if (level === 6) selectedText = LEVEL_3_PRECISION[Math.floor(Math.random() * LEVEL_3_PRECISION.length)];
+
+    if (selectedText) {
+      setLevelText(level, selectedText);
+    }
+    return selectedText;
+  };
+
   const renderCurrentStep = () => {
     switch (currentLevel) {
       case 0:
@@ -45,7 +59,7 @@ function App() {
         return (
           <TypingArea
             title="Warmup"
-            text={WARMUP_TEXT}
+            text={getLevelText(1)}
             onComplete={handleComplete}
             isWarmup
           />
@@ -54,7 +68,7 @@ function App() {
         return (
           <TypingArea
             title="Level 1: Paragraphs"
-            text={LEVEL_1_PARAGRAPHS[Math.floor(Math.random() * LEVEL_1_PARAGRAPHS.length)]}
+            text={getLevelText(2)}
             onComplete={handleComplete}
           />
         );
@@ -64,7 +78,7 @@ function App() {
         return (
           <TypingArea
             title="Level 2: Code Typing"
-            text={LEVEL_2_CODE[Math.floor(Math.random() * LEVEL_2_CODE.length)]}
+            text={getLevelText(4)}
             onComplete={handleComplete}
           />
         );
@@ -74,7 +88,7 @@ function App() {
         return (
           <TypingArea
             title="Level 3: Precision"
-            text={LEVEL_3_PRECISION[Math.floor(Math.random() * LEVEL_3_PRECISION.length)]}
+            text={getLevelText(6)}
             onComplete={handleComplete}
           />
         );
