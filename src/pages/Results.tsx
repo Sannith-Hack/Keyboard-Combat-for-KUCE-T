@@ -1,15 +1,19 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { supabase } from '../lib/supabase';
 
 const Results: React.FC = () => {
   const { participant, attempts, resetGame, hasSaved, setHasSaved } = useGameStore();
   const [isSaving, setIsSaving] = useState(false);
+  const hasAttemptedSave = useRef(false);
 
   useEffect(() => {
+    // Prevent duplicate saves using ref
+    if (hasAttemptedSave.current || hasSaved || !participant || attempts.length === 0) {
+      return;
+    }
+
     const saveResults = async () => {
-      if (!participant || attempts.length === 0 || isSaving || hasSaved) return;
-      
       setIsSaving(true);
       try {
         const level1 = attempts.find(a => a.level === 1);
@@ -48,18 +52,22 @@ const Results: React.FC = () => {
         }]);
 
         if (resultError) throw resultError;
+        
+        // Mark as saved LAST to prevent re-trigger
         setHasSaved(true);
+        hasAttemptedSave.current = true;
 
       } catch (error: any) {
         console.error('Error saving results:', error);
         alert(`Failed to save results: ${error.message || 'Unknown error'}`);
+        hasAttemptedSave.current = true;
       } finally {
         setIsSaving(false);
       }
     };
 
     saveResults();
-  }, [participant, attempts, hasSaved, isSaving, setHasSaved]);
+  }, []); // Empty dependency array - only run once on mount
 
   const avgWpm = (attempts.reduce((acc, curr) => acc + curr.wpm, 0) / attempts.length).toFixed(2) || "0.00";
   const avgAcc = (attempts.reduce((acc, curr) => acc + curr.accuracy, 0) / attempts.length).toFixed(2) || "0.00";
