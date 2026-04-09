@@ -8,13 +8,15 @@ const Results: React.FC = () => {
   const hasAttemptedSave = useRef(false);
 
   useEffect(() => {
-    // Prevent duplicate saves using ref
+    // Prevent duplicate saves - set flag immediately before async call
     if (hasAttemptedSave.current || hasSaved || !participant || attempts.length === 0) {
       return;
     }
 
+    // SET FLAG IMMEDIATELY - before any async operations
+    hasAttemptedSave.current = true;
+
     const saveResults = async () => {
-      setIsSaving(true);
       try {
         const level1 = attempts.find(a => a.level === 1);
         const level2 = attempts.find(a => a.level === 3);
@@ -23,6 +25,19 @@ const Results: React.FC = () => {
         const avgWpm = (attempts.reduce((acc, curr) => acc + curr.wpm, 0) / attempts.length);
         const avgAcc = (attempts.reduce((acc, curr) => acc + curr.accuracy, 0) / attempts.length);
         const totalScore = attempts.reduce((acc, curr) => acc + curr.combatScore, 0);
+
+        // Check if result already exists to prevent duplicates
+        const { data: existingResult } = await supabase.from('results')
+          .select('id')
+          .eq('participant_id', participant.id)
+          .eq('competition_id', participant.competition_id)
+          .single();
+
+        if (existingResult) {
+          console.log('Result already saved, skipping duplicate insert');
+          setHasSaved(true);
+          return;
+        }
 
         // 1. Save individual attempts
         const { error: attemptError } = await supabase.from('attempts').insert(
@@ -53,16 +68,11 @@ const Results: React.FC = () => {
 
         if (resultError) throw resultError;
         
-        // Mark as saved LAST to prevent re-trigger
         setHasSaved(true);
-        hasAttemptedSave.current = true;
 
       } catch (error: any) {
         console.error('Error saving results:', error);
         alert(`Failed to save results: ${error.message || 'Unknown error'}`);
-        hasAttemptedSave.current = true;
-      } finally {
-        setIsSaving(false);
       }
     };
 
