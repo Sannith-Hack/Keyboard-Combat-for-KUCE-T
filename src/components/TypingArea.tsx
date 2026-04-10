@@ -77,34 +77,77 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, onComplete, title, isWarm
   };
 
   const renderText = () => {
+    // Prevent breaking words across lines by grouping characters into word tokens.
+    const tokens = text.split(/(\s+)/); // keep whitespace tokens
+    let globalIndex = 0;
+
     return (
       <>
-        {text.split('').map((char, index) => {
-          let color = 'text-gray-400';
-          const isCurrent = index === userInput.length;
-          
-          if (index < userInput.length) {
-            color = userInput[index] === char ? 'text-green-400' : 'text-red-500 bg-red-900/30';
-          }
-          
-          return (
-            <span key={index} className="relative inline">
-              {isCurrent && char !== '\n' && (
-                <span className="absolute left-0 top-0 w-[2px] h-full bg-blue-500 animate-pulse" />
-              )}
-              {char === '\n' ? (
-                <span className={`block ${color}`}>↵</span>
-              ) : (
-                <span className={`${color} transition-colors duration-100 inline-block min-w-[0.6em]`}>
-                  {char === ' ' ? '\u00A0' : char}
+        {tokens.map((token, tIdx) => {
+          // Whitespace token (spaces, newlines)
+          if (/^\s+$/.test(token)) {
+            return token.split('').map((char, cIdx) => {
+              const index = globalIndex++;
+              const isCurrent = index === userInput.length;
+              const color = index < userInput.length
+                ? (userInput[index] === char ? 'text-green-400' : 'text-red-500 bg-red-900/30')
+                : 'text-gray-400';
+
+              if (char === '\n') {
+                return (
+                  <span key={`nl-${tIdx}-${cIdx}`} className={`block relative ${color}`}>
+                    {isCurrent && (
+                      <span className="absolute left-0 top-0 w-[2px] h-full bg-blue-500 animate-pulse" />
+                    )}
+                    <span>↵</span>
+                  </span>
+                );
+              }
+
+              // Regular space — allow line break here (so no nowrap)
+              return (
+                <span key={`sp-${tIdx}-${cIdx}`} className="relative inline">
+                  {isCurrent && (
+                    <span className="absolute left-0 top-0 w-[2px] h-full bg-blue-500 animate-pulse" />
+                  )}
+                  <span className={`${color} transition-colors duration-100 inline-block min-w-[0.6em]`}>
+                    {'\u00A0'}
+                  </span>
                 </span>
-              )}
+              );
+            });
+          }
+
+          // Non-whitespace token (a word) — make the whole word non-breakable.
+          const chars = token.split('').map((char, cIdx) => {
+            const index = globalIndex++;
+            const isCurrent = index === userInput.length;
+            const color = index < userInput.length
+              ? (userInput[index] === char ? 'text-green-400' : 'text-red-500 bg-red-900/30')
+              : 'text-gray-400';
+
+            return (
+              <span key={`w-${tIdx}-${cIdx}`} className="relative inline">
+                {isCurrent && (
+                  <span className="absolute left-0 top-0 w-[2px] h-full bg-blue-500 animate-pulse" />
+                )}
+                <span className={`${color} transition-colors duration-100 inline-block min-w-[0.6em]`}>
+                  {char}
+                </span>
+              </span>
+            );
+          });
+
+          return (
+            <span key={`word-${tIdx}`} className="inline-block whitespace-nowrap">
+              {chars}
             </span>
           );
         })}
+
         {/* Cursor at the end of text */}
         {userInput.length === text.length && !isFinished && (
-           <span className="relative inline-block w-[2px] h-[1.2em] bg-blue-500 animate-pulse align-middle ml-1" />
+          <span className="relative inline-block w-[2px] h-[1.2em] bg-blue-500 animate-pulse align-middle ml-1" />
         )}
       </>
     );
