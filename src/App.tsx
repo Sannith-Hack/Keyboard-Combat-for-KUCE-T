@@ -7,6 +7,7 @@ import Results from './pages/Results';
 import WaitingRoom from './components/WaitingRoom';
 import { supabase } from './lib/supabase';
 import { LEVEL_1_PARAGRAPHS, LEVEL_2_CODE, LEVEL_3_PRECISION } from './data/content';
+import { updateStudent } from './lib/studentsApi';
 
 function App() {
   const { currentLevel, nextLevel, addAttempt, setActiveCompetition, activeCompetition, levelTexts, setLevelText } = useGameStore();
@@ -84,6 +85,21 @@ function App() {
 
   const handleComplete = (wpm: number, accuracy: number, timeTaken: number, combatScore: number) => {
     addAttempt({ level: currentLevel, wpm, accuracy, timeTaken, combatScore });
+
+    // Persist per-level progress to the student's record (if available)
+    const participant = useGameStore.getState().participant;
+    if (participant && participant.id) {
+      try {
+        if (currentLevel === 1) {
+          updateStudent(participant.id, { level1_time: timeTaken, level1_wpm: wpm }).catch(console.error);
+        } else if (currentLevel === 3) {
+          updateStudent(participant.id, { level2_time: timeTaken, level2_wpm: wpm }).catch(console.error);
+        }
+      } catch (err) {
+        console.error('Failed to persist level progress:', err);
+      }
+    }
+
     nextLevel();
   };
 

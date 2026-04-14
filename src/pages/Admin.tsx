@@ -48,20 +48,24 @@ const Admin: React.FC = () => {
 
     // 2. Fetch Leaderboard for active view
     if (activeCompetition) {
-      const { data: results } = await supabase
-        .from('results')
-        .select(`
-          id,
-          avg_wpm,
-          avg_accuracy,
-          total_score,
-          competition_id,
-          participants ( name, roll_number )
-        `)
+      // Fetch students for this competition and compute leaderboard fields
+      const { data: students } = await supabase
+        .from('students')
+        .select('*')
         .eq('competition_id', activeCompetition.id)
-        .order('total_score', { ascending: false }); // Sort by score now
-      
-      setLeaderboard(results as any || []);
+        .in('status', ['started', 'completed']);
+
+      const lb = (students || []).map((s: any) => ({
+        id: s.id,
+        avg_wpm: s.avg_wpm || 0,
+        avg_accuracy: s.avg_accuracy || 0,
+        total_score: s.total_score || 0,
+        participants: { name: s.name, roll_number: s.roll_number },
+        competition_id: s.competition_id
+      }))
+      .sort((a: any, b: any) => b.total_score - a.total_score);
+
+      setLeaderboard(lb as any || []);
     }
     
     setLoading(false);
@@ -73,6 +77,7 @@ const Admin: React.FC = () => {
       .channel('admin-updates')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'results' }, fetchData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'competitions' }, fetchData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'students' }, fetchData)
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };

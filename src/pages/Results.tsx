@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useGameStore } from '../store/useGameStore';
 import { supabase } from '../lib/supabase';
+import { updateStudent } from '../lib/studentsApi';
 
 const Results: React.FC = () => {
   const { participant, attempts, resetGame, hasSaved, setHasSaved } = useGameStore();
@@ -26,20 +27,7 @@ const Results: React.FC = () => {
         const avgAcc = (attempts.reduce((acc, curr) => acc + curr.accuracy, 0) / attempts.length);
         const totalScore = attempts.reduce((acc, curr) => acc + curr.combatScore, 0);
 
-        // Check if result already exists to prevent duplicates
-        const { data: existingResult } = await supabase.from('results')
-          .select('id')
-          .eq('participant_id', participant.id)
-          .eq('competition_id', participant.competition_id)
-          .single();
-
-        if (existingResult) {
-          console.log('Result already saved, skipping duplicate insert');
-          setHasSaved(true);
-          return;
-        }
-
-        // 1. Save individual attempts
+        // 1. Save individual attempts (history)
         const { error: attemptError } = await supabase.from('attempts').insert(
           attempts.map(a => ({
             participant_id: participant.id,
@@ -54,21 +42,23 @@ const Results: React.FC = () => {
 
         if (attemptError) throw attemptError;
 
-        // 2. Save final result summary
-        const { error: resultError } = await supabase.from('results').insert([{
-          participant_id: participant.id,
-          competition_id: participant.competition_id,
-          level1_wpm: level1?.wpm || 0,
-          level2_wpm: level2?.wpm || 0,
-          level3_wpm: level3?.wpm || 0,
-          avg_wpm: avgWpm,
-          avg_accuracy: avgAcc,
-          total_score: totalScore
-        }]);
+        // 2. Update the student's record instead of inserting a separate results row
+        try {
+          await updateStudent(participant.id, {
+            level1_wpm: level1?.wpm || 0,
+            level2_wpm: level2?.wpm || 0,
+            level3_wpm: level3?.wpm || 0,
+            avg_wpm: avgWpm,
+            avg_accuracy: avgAcc,
+            total_score: totalScore,
+            status: 'completed'
+          });
 
-        if (resultError) throw resultError;
-        
-        setHasSaved(true);
+          setHasSaved(true);
+        } catch (err: any) {
+          console.error('Failed to update student record:', err);
+          throw err;
+        }
 
       } catch (error: any) {
         console.error('Error saving results:', error);

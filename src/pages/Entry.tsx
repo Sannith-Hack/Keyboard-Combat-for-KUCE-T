@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useGameStore } from '../store/useGameStore';
-import { supabase } from '../lib/supabase';
+import { startStudent } from '../lib/studentsApi';
 
 const Entry: React.FC = () => {
   const { setParticipant, activeCompetition } = useGameStore();
@@ -21,17 +21,8 @@ const Entry: React.FC = () => {
     setLoading(true);
 
     try {
-      const { data, error } = await supabase
-        .from('participants')
-        .insert([{ ...formData, competition_id: activeCompetition.id }])
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      if (data) {
-        setParticipant(data);
-      }
+      const student = await startStudent({ ...formData, competition_id: activeCompetition.id });
+      if (student) setParticipant(student);
     } catch (error: any) {
       console.error('Error registering participant:', error);
       alert(`Registration failed: ${error.message || 'Please try again.'}`);
