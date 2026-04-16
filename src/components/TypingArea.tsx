@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 
 interface TypingAreaProps {
   text: string;
@@ -15,13 +15,15 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, onComplete, title, isWarm
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
+  // Optimization: Pre-split tokens only when text changes
+  const tokens = useMemo(() => text.split(/(\s+)/), [text]);
+
   useEffect(() => {
     const scrollHandler = () => {
       const container = containerRef.current;
       const cursor = container?.querySelector('.active-cursor') as HTMLElement;
       
       if (container && cursor) {
-        // OffsetTop is relative to containerRef because the inner div is not positioned
         const containerHeight = container.offsetHeight;
         const cursorTop = cursor.offsetTop;
         const cursorHeight = cursor.offsetHeight;
@@ -100,13 +102,8 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, onComplete, title, isWarm
 
       for (let i = 0; i < tabSize; i++) {
         if (currentInput.length >= text.length) break;
-
         const nextChar = " ";
-        const expectedChar = text[currentInput.length];
-
-        if (nextChar !== expectedChar) {
-          currentMistakes++;
-        }
+        if (nextChar !== text[currentInput.length]) currentMistakes++;
         currentInput += nextChar;
       }
 
@@ -115,72 +112,55 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, onComplete, title, isWarm
 
       if (currentInput.length === text.length) {
         setIsFinished(true);
-        // Calculate final stats manually for immediate completion call
-        const timeTakenSeconds = (Date.now() - (startTime || Date.now())) / 1000;
-        const timeTakenMinutes = timeTakenSeconds / 60;
-        const wordsTyped = currentInput.length / 5;
-        const rawWpm = timeTakenMinutes > 0 ? (wordsTyped / timeTakenMinutes) : 0;
-        const accuracy = ((currentInput.length - currentMistakes) / currentInput.length) * 100;
-        const combatScore = rawWpm * Math.pow(accuracy / 100, 2);
-
-        onComplete(
-          Number(rawWpm.toFixed(2)),
-          Number(Math.max(0, accuracy).toFixed(2)),
-          Number(timeTakenSeconds.toFixed(1)),
-          Number(combatScore.toFixed(2))
-        );
+        const stats = calculateStats();
+        onComplete(stats.wpm, stats.accuracy, stats.timeTaken, stats.combatScore);
       }
     }
   };
 
   const renderText = () => {
-    const tokens = text.split(/(\s+)/);
     let globalIndex = 0;
 
     return (
       <>
         {tokens.map((token, tIdx) => {
-          if (/^\s+$/.test(token)) {
-            return token.split('').map((char, cIdx) => {
-              const index = globalIndex++;
-              const isCurrent = index === userInput.length;
-              const color = index < userInput.length
-                ? (userInput[index] === char ? 'text-green-400' : 'text-red-500 bg-red-900/30')
-                : 'text-gray-400';
+          const tokenStart = globalIndex;
+          const tokenEnd = globalIndex + token.length;
+          globalIndex = tokenEnd;
 
-              if (char === '\n') {
-                return (
-                  <span key={`nl-${tIdx}-${cIdx}`} className={`block relative h-[1.5em] ${isCurrent ? 'active-cursor' : ''} ${color}`}>
-                    {isCurrent && (
-                      <span className="absolute left-0 top-0 w-[2px] h-full bg-blue-500 animate-pulse" />
-                    )}
-                    <span className="opacity-30">↵</span>
-                  </span>
-                );
-              }
+          // If the entire token is in the future, render it as a single span
+          // This prevents thousands of DOM nodes while keeping the whole text visible
+          if (tokenStart > userInput.length) {
+            return (
+              <span key={tIdx} className="text-gray-400">
+                {token}
+              </span>
+            );
+          }
 
+          // If the token is being typed or already typed, render char-by-char
+          const chars = token.split('').map((char, cIdx) => {
+            const charIndex = tokenStart + cIdx;
+            const isCurrent = charIndex === userInput.length;
+            const isTyped = charIndex < userInput.length;
+            
+            const color = isTyped
+              ? (userInput[charIndex] === char ? 'text-green-400' : 'text-red-500 bg-red-900/30')
+              : 'text-gray-400';
+
+            if (char === '\n') {
               return (
-                <span key={`sp-${tIdx}-${cIdx}`} className={`relative inline-block ${isCurrent ? 'active-cursor' : ''}`}>
+                <span key={cIdx} className={`block relative h-[1.5em] ${isCurrent ? 'active-cursor' : ''} ${color}`}>
                   {isCurrent && (
                     <span className="absolute left-0 top-0 w-[2px] h-full bg-blue-500 animate-pulse" />
                   )}
-                  <span className={`${color} transition-colors duration-100 inline-block min-w-[0.6em]`}>
-                    {'\u00A0'}
-                  </span>
+                  <span className="opacity-30">↵</span>
                 </span>
               );
-            });
-          }
-
-          const chars = token.split('').map((char, cIdx) => {
-            const index = globalIndex++;
-            const isCurrent = index === userInput.length;
-            const color = index < userInput.length
-              ? (userInput[index] === char ? 'text-green-400' : 'text-red-500 bg-red-900/30')
-              : 'text-gray-400';
+            }
 
             return (
-              <span key={`w-${tIdx}-${cIdx}`} className={`relative inline-block ${isCurrent ? 'active-cursor' : ''}`}>
+              <span key={cIdx} className={`relative inline-block ${isCurrent ? 'active-cursor' : ''}`}>
                 {isCurrent && (
                   <span className="absolute left-0 top-0 w-[2px] h-full bg-blue-500 animate-pulse" />
                 )}
@@ -192,7 +172,7 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, onComplete, title, isWarm
           });
 
           return (
-            <span key={`word-${tIdx}`} className="inline-block whitespace-nowrap">
+            <span key={tIdx}>
               {chars}
             </span>
           );
