@@ -9,6 +9,7 @@
 - **State Management:** Zustand (with persistence)
 - **Routing:** React Router DOM
 - **Backend/DB:** Supabase (Database + Realtime)
+- **API Server:** Node.js (Express) - Unified student tracking & duplication prevention.
 - **Icons:** Lucide React
 
 ---
@@ -16,15 +17,15 @@
 ## 🏗️ Architecture & Core Logic
 
 ### Competition Flow
-The application follows a structured flow managed in `src/App.tsx`:
-0. **Entry:** Participant registration (allows early entry for upcoming events).
+The application follows a structured flow managed in `src/App.tsx`, with participant registration and progress tracking handled via the **Express API server**:
+0. **Entry:** Participant registration (via `/api/students/start` to prevent duplicates).
 1. **Waiting Room:** Countdown timer holding area until the competition goes live.
-2. **Level 1 (Paragraphs):** Natural language typing.
+2. **Level 1 (Paragraphs):** Natural language typing (progress synced to `students` table).
 3. **Break:** 10-second intermission.
-4. **Level 2 (Code):** C/C++ snippet typing (strict character comparison).
+4. **Level 2 (Code):** C/C++ snippet typing (progress synced to `students` table).
 5. **Break:** 10-second intermission.
 6. **Level 3 (Precision):** High-precision special characters and symbols.
-7. **Results:** Final performance breakdown and database submission.
+7. **Results:** Final performance breakdown and database submission (status updated to 'completed' via API).
 
 ### 🧠 Scoring Schema (Combat Points)
 The application uses a weighted scoring formula to prioritize accuracy over raw speed:
@@ -41,11 +42,12 @@ The application uses a weighted scoring formula to prioritize accuracy over raw 
 ---
 
 ## 📊 Database Schema (Supabase)
-The project uses four primary tables:
+The project uses five primary tables:
 1. **`competitions`**: Manages event slots (id, name, status [draft/live/ended], scheduled_start).
 2. **`participants`**: Stores student details (id, name, roll_number, email, college, competition_id).
 3. **`attempts`**: Level-by-level performance (id, participant_id, level, wpm [NUMERIC], accuracy [NUMERIC], time_taken, combat_score [NUMERIC], competition_id).
 4. **`results`**: Final aggregated scores for the leaderboard (id, participant_id, level1_wpm, level2_wpm, level3_wpm, avg_wpm, avg_accuracy, total_score, competition_id).
+5. **`students`**: Unified table for real-time tracking of participants and their final scores. Used by the API server to handle concurrent registrations and prevent duplicates.
 
 ---
 
@@ -55,11 +57,14 @@ The project uses four primary tables:
 Required variables in `.env`:
 - `VITE_SUPABASE_URL`: Supabase project URL.
 - `VITE_SUPABASE_ANON_KEY`: Supabase anonymous API key.
+- `VITE_API_URL`: Base URL for the Express API server (e.g., `http://localhost:4000`).
 - `VITE_ADMIN_USER`: Username for admin dashboard.
 - `VITE_ADMIN_PASS`: Password for admin dashboard.
 
 ### Commands
-- `npm run dev`: Starts the Vite development server.
+- `npm run dev`: Starts both the Vite frontend and Express API server concurrently.
+- `npm run frontend`: Starts only the Vite development server.
+- `npm run server`: Starts only the Express API server.
 - `npm run build`: Compiles TypeScript and builds the production bundle.
 - `npm run preview`: Locally previews the production build.
 

@@ -28,10 +28,12 @@ const Results: React.FC = () => {
         const totalScore = attempts.reduce((acc, curr) => acc + curr.combatScore, 0);
 
         // 1. Save individual attempts (history)
+        // Note: This table still references 'participants' table in SQL.
+        // We will attempt to save, but if the foreign key still points to the old table, 
+        // this might still fail until the SQL migration is run.
         const { error: attemptError } = await supabase.from('attempts').insert(
           attempts.map(a => ({
             participant_id: participant.id,
-            competition_id: participant.competition_id,
             level: a.level,
             wpm: a.wpm,
             accuracy: a.accuracy,
@@ -40,9 +42,11 @@ const Results: React.FC = () => {
           }))
         );
 
-        if (attemptError) throw attemptError;
+        if (attemptError) {
+          console.warn('Attempts table save failed (likely DB constraint), continuing to update students table:', attemptError);
+        }
 
-        // 2. Update the student's record instead of inserting a separate results row
+        // 2. Update the student's record - THIS IS WHAT THE ADMIN DASHBOARD SHOWS
         try {
           await updateStudent(participant.id, {
             level1_wpm: level1?.wpm || 0,

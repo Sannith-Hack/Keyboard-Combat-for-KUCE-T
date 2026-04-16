@@ -1,7 +1,53 @@
-import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react';
+🧠 Recommendations for Level 3: "Precision Mode"
+  Level 1 is paragraphs (natural flow) and Level 2 is code (structural). For Level 3, I suggest High-Precision Special Characters:
+   - Concept: A mix of symbols, numbers, and case-sensitive strings (e.g., !@#$34-AbC_dEf*).
+   - Challenge: This tests the user's mastery of the entire keyboard beyond just letters.
+   - Scoring: Strict accuracy with a "Sudden Death" rule—3 mistakes and the level ends immediately, forcing them to focus on precision over
+     speed.
 
-// https://vitejs.dev/config/
-export default defineConfig({
-  plugins: [react()],
-});
+  🛠️ Enhancements for Users & Coordinators
+  For Participants:
+   - Dynamic Feedback: Real-time color coding (Green for correct, Red for errors) and a "Ghost" cursor that shows the target pace (e.g., 60 WPM).
+   - Interactive Replay: A small graph at the end showing their WPM speed throughout the attempt (to see where they slowed down).
+   - Anti-Cheat: Disable copy-pasting, right-clicking, and detect if the user switches tabs (auto-disqualify or pause).
+
+  For Coordinators:
+   - Live Leaderboard: A "Broadcast" view that updates in real-time as participants finish, perfect for projecting on a screen.
+   - Reset Capability: Sometimes a keyboard fails or a browser crashes. Give admins a button to "Reset Attempt" for a specific ID.
+   - Export Data: One-click CSV export of all results for prize distribution.
+
+  ⚙️ Technical Observations
+   - Environment Variables: Your .env.example uses NEXT_PUBLIC_ prefixes, but your tech stack mentions Vite. For Vite, we should use VITE_
+     prefixes (e.g., VITE_SUPABASE_URL).
+   - Session Persistence: I recommend using Zustand with the Persist middleware to ensure that if a user accidentally refreshes, they can resume
+     their current level without losing their progress (within a time limit).
+✦ Before I implement the changes, here are my recommendations for the Admin Command Center and its security:
+
+  🛡️ Security Recommendations
+   1. Environment Variable Storage: Even without hashing, we should store the admin/Anneun@7705 credentials in your .env file as VITE_ADMIN_USER
+      and VITE_ADMIN_PASS. This prevents the password from being hardcoded in the source code.
+   2. Session Guard: We will implement a ProtectedAdminRoute. If someone tries to visit /admin without logging in, they will be automatically
+      redirected to a /login page.
+   3. Automatic Logout: Since this is a one-day event with multiple coordinators, we can set the session to expire if the tab is closed, ensuring
+      no one leaves the dashboard open on a shared laptop.
+
+  📊 Recommended Admin Features
+   1. Competition Lifecycle:
+       - Draft: Prepare the competition name and text.
+       - Live: Only when a competition is "Live" can participants submit scores. This prevents "early birds" from skewing results.
+       - Ended: Freezes the leaderboard and declares the winner.
+   2. The "Kill Switch": A button to instantly pause all incoming submissions if a technical glitch occurs.
+   3. Winner Highlight: Automatically calculate and highlight the top performer for each specific scheduled slot.
+   4. Screen Mirror Mode: A "Public View" button that opens a clean, full-screen leaderboard (without admin buttons) intended for projection on a
+      big screen.
+
+  ---
+
+  🏗️ Proposed Implementation Plan
+   1. Database Expansion:
+       - Add a competitions table to store names, times, and status.
+       - Update results and attempts tables to link to a competition_id.
+   2. Auth Layer: Create a secure login screen.
+   3. Management UI: Add a "Schedule Competition" modal and a list of all sessions.
+
+  Do you approve of these recommendations? If so, I will proceed with updating the database schema and building the authenticated dashboard.

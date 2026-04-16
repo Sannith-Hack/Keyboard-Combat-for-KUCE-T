@@ -5,10 +5,11 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently \"npm run frontend\" \"npm run server\"",
+    "frontend": "vite",
+    "server": "node server/index.js",
     "build": "tsc && vite build",
-    "preview": "vite preview",
-    "server": "node server/index.js"
+    "preview": "vite preview"
   },
   "keywords": [],
   "author": "",
@@ -19,21 +20,21 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vitejs/plugin-react": "^6.0.1",
+    "body-parser": "^1.20.2",
     "clsx": "^2.1.1",
+    "cors": "^2.8.5",
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
     "lucide-react": "^1.8.0",
     "react-router-dom": "^7.14.0",
     "tailwind-merge": "^3.5.0",
     "typescript": "^6.0.2",
     "vite": "^8.0.8",
     "zustand": "^5.0.12"
-    ,
-    "express": "^4.18.2",
-    "cors": "^2.8.5",
-    "body-parser": "^1.20.2",
-    "dotenv": "^16.0.3"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.27",
+    "concurrently": "^9.2.1",
     "postcss": "^8.5.9",
     "tailwindcss": "^4.2.2"
   }

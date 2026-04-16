@@ -11,10 +11,10 @@ app.use(cors());
 app.use(bodyParser.json());
 
 const SUPABASE_URL = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_KEY;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_KEY || process.env.SUPABASE_SERVICE_KEY || process.env.VITE_SUPABASE_ANON_KEY;
 
 if (!SUPABASE_URL || !SUPABASE_KEY) {
-  console.error('Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY in environment');
+  console.error('Missing SUPABASE_URL or SUPABASE_ANON_KEY in environment');
   process.exit(1);
 }
 
@@ -53,9 +53,7 @@ app.post('/api/students/start', async (req, res) => {
       college,
       competition_id,
       status: 'started',
-      start_time: new Date().toISOString(),
-      level1_status: 'pending',
-      level2_status: 'pending'
+      start_time: new Date().toISOString()
     };
 
     const { data, error } = await supabase

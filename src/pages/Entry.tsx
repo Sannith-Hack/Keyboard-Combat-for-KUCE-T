@@ -89,9 +89,10 @@ const Entry: React.FC = () => {
           <input
             type="text"
             required
-            readOnly
-            className="w-full p-2 rounded bg-gray-700 border border-gray-600 opacity-70 cursor-not-allowed"
+            className="w-full p-2 rounded bg-gray-700 border border-gray-600 focus:border-blue-500 outline-none"
+            placeholder="Enter your college name"
             value={formData.college}
+            onChange={(e) => setFormData({ ...formData, college: e.target.value })}
           />
         </div>
         <button
