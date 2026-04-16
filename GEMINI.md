@@ -77,6 +77,17 @@ Access via `/login` or `/admin`.
 
 ---
 
+## ☁️ Hosting (Vercel)
+This project is configured for Vercel:
+1. **Frontend:** React SPA routing is handled via `vercel.json`.
+2. **Backend:** Express API is served as a Serverless Function in `api/index.js`.
+3. **Setup:**
+   - Connect GitHub repository to Vercel.
+   - Add Environment Variables in Vercel Dashboard.
+   - Deploy.
+
+---
+
 ## 📝 Conventions
 - **State:** Use `src/store/useGameStore.ts` for all shared application state.
 - **Components:** Modularize UI in `src/components/`.
