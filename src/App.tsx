@@ -151,12 +151,18 @@ function App() {
       <main className="w-full max-w-5xl flex justify-center">
         {renderCurrentStep()}
       </main>
-      <footer className="mt-12 text-gray-500 text-xs flex gap-8 items-center">
-        <img src="/assets/Naac_A+.png" alt="NAAC A+" className="h-10 grayscale opacity-50" />
-        <p>© 2026 KU College of Engineering and Technology. All Rights Reserved.</p>
-        <div className="flex gap-2">
+      <footer className="mt-12 text-gray-500 text-[10px] flex flex-col md:flex-row gap-8 items-center border-t border-gray-800 pt-8 w-full max-w-5xl">
+        <div className="flex items-center gap-8">
+          <img src="/assets/Naac_A+.png" alt="NAAC A+" className="h-10 grayscale opacity-50" />
+          <div className="text-left">
+            <p>© 2026 KU College of Engineering and Technology. All Rights Reserved.</p>
+            <p className="mt-1">Developed by <span className="text-blue-500 font-bold italic uppercase tracking-wider">P.Sannith</span> (CSE 3rd Year)</p>
+          </div>
+        </div>
+        <div className="flex-1"></div>
+        <div className="flex gap-2 items-center bg-gray-950 px-4 py-2 rounded-full border border-gray-800">
           <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
-          <span>System Online</span>
+          <span className="font-mono uppercase tracking-widest text-[8px]">System Online</span>
         </div>
       </footer>
     </div>
