@@ -11,9 +11,12 @@ export const LEVEL_2_CODE = [
 ];
 
 export const LEVEL_3_PRECISION = [
-  "{~~!!##$$%%^^&&**(())__++--=={{}}[[]]||\\\\::;;\"\"''<<>>,,..??//00998877665544332211``~~}",
-  "[[ (x + y) * {z / w} ]] => <a href='https://combat.io?ref=admin&token=XY77_ZZ'> CLICK HERE </a> !!",
-  "Error: [Line 45] -> Expected ';' but found '}' in file: /usr/local/include/lib_combat.h_v2.0.1",
-  "Math.random().toString(36).substring(7) + '@' + Array(10).fill(0).map(() => Math.floor(Math.random() * 10)).join('');",
-  "System.out.println(\"The result of ( (15 * 3) / (4 + 1) ) is: \" + ( (15.0 * 3.0) / (4.0 + 1.0) ));"
+  "f7$H#k9@L!p2*Q&s5%V^x8(B)z1_M+w4=E{r3}G[t6]Y|u0\\i2:o5;n9'm1,k7.j4<h8>g2?f6/v3`b5~S",
+  "&_&^%$#@!*)(_+=-][}{;:\"'|\\\\?/><,.~`1234567890qwertyuiopASDFGHJKLMNBVCXZ!@#$%^&*()_+",
+  "C:\\\\Users\\\\Admin\\\\AppData\\\\Local\\\\Temp\\\\7zS1A2B.tmp\\\\setup.exe /S /v\"/qn REBOOT=ReallySuppress\"",
+  "0x7FFF_E000_A1B2_C3D4 << 4 | 0x0F & ~(1 << 7) ^ Math.pow(Math.PI, 2.71828) + 0xDEADBEEF;",
+  "https://example.com/api/v3/auth/callback?code=XY-77_Zz&state=p9_K2_m8_v5_q1_x4_z0_j6_h3_g9_f2",
+  "[[ ( (a && b) || (c != d) ) ?? (e === f) ]] :: { { g >> 2 } , { h << 3 } } => [!@#$%^&*()]",
+  "~`1!2@3#4$5%6^7&8*9(0)-_=+qQwWeErRtTyYuUiIoOpP[{]}|\\\\aAsSdDfFgGhHjJkKlL;:'\"zZxXcCvVbBnNmM,<.>/?",
+  "Error_Code: 0x80070005; Status: ACCESS_DENIED; Process: 'combat_sys_v4.2.1.exe'; PID: 4096; Thread: 0x1A2C"
 ];
