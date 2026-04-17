@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
-interface Participant {
+export interface Participant {
   id: string;
   name: string;
   roll_number: string;
@@ -10,7 +10,7 @@ interface Participant {
   competition_id?: string;
 }
 
-interface Attempt {
+export interface Attempt {
   level: number;
   wpm: number;
   accuracy: number;
@@ -19,11 +19,12 @@ interface Attempt {
   competition_id?: string;
 }
 
-interface Competition {
+export interface Competition {
   id: string;
   name: string;
   status: 'draft' | 'live' | 'ended';
   scheduled_start: string;
+  created_at?: string;
 }
 
 interface GameState {
@@ -33,7 +34,9 @@ interface GameState {
   attempts: Attempt[];
   isGameComplete: boolean;
   hasSaved: boolean;
+  hasCompletedWarmup: boolean;
   levelTexts: { [key: number]: string };
+  selectedWarmupMode: 'game' | 'paragraph';
   
   // Admin & Competition State
   isAdminAuthenticated: boolean;
@@ -45,8 +48,10 @@ interface GameState {
   addAttempt: (attempt: Attempt) => void;
   completeGame: () => void;
   setHasSaved: (val: boolean) => void;
+  setHasCompletedWarmup: (val: boolean) => void;
   resetGame: () => void;
   setLevelText: (level: number, text: string) => void;
+  setWarmupMode: (mode: 'game' | 'paragraph') => void;
   
   // Admin Actions
   login: (user: string, pass: string) => boolean;
@@ -62,7 +67,9 @@ export const useGameStore = create<GameState>()(
       attempts: [],
       isGameComplete: false,
       hasSaved: false,
+      hasCompletedWarmup: false,
       levelTexts: {},
+      selectedWarmupMode: 'game',
       
       isAdminAuthenticated: false,
       activeCompetition: null,
@@ -74,16 +81,20 @@ export const useGameStore = create<GameState>()(
       })),
       completeGame: () => set({ isGameComplete: true }),
       setHasSaved: (val) => set({ hasSaved: val }),
+      setHasCompletedWarmup: (val) => set({ hasCompletedWarmup: val }),
       setLevelText: (level, text) => set((state) => ({
         levelTexts: { ...state.levelTexts, [level]: text }
       })),
+      setWarmupMode: (mode) => set({ selectedWarmupMode: mode }),
       resetGame: () => set({ 
         participant: null, 
         currentLevel: 0, 
         attempts: [], 
-        isGameComplete: false,
+        isGameComplete: false, 
         hasSaved: false,
-        levelTexts: {}
+        hasCompletedWarmup: false,
+        levelTexts: {},
+        selectedWarmupMode: 'game'
       }),
 
       login: (user, pass) => {
@@ -107,7 +118,9 @@ export const useGameStore = create<GameState>()(
         isGameComplete: state.isGameComplete,
         isAdminAuthenticated: state.isAdminAuthenticated,
         activeCompetition: state.activeCompetition,
-        levelTexts: state.levelTexts
+        levelTexts: state.levelTexts,
+        selectedWarmupMode: state.selectedWarmupMode,
+        hasCompletedWarmup: state.hasCompletedWarmup
       }),
     }
   )

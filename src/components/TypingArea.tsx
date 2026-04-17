@@ -5,18 +5,39 @@ interface TypingAreaProps {
   onComplete: (wpm: number, accuracy: number, timeTaken: number, combatScore: number) => void;
   title: string;
   isWarmup?: boolean;
+  duration?: number; // duration in seconds
 }
 
-const TypingArea: React.FC<TypingAreaProps> = ({ text, onComplete, title, isWarmup }) => {
+const TypingArea: React.FC<TypingAreaProps> = ({ text, onComplete, title, isWarmup, duration = 180 }) => {
   const [userInput, setUserInput] = useState('');
   const [startTime, setStartTime] = useState<number | null>(null);
   const [mistakes, setMistakes] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(duration);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Optimization: Pre-split tokens only when text changes
   const tokens = useMemo(() => text.split(/(\s+)/), [text]);
+
+  useEffect(() => {
+    if (!startTime || isFinished) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          setIsFinished(true);
+          const stats = calculateStats();
+          onComplete(stats.wpm, stats.accuracy, stats.timeTaken, stats.combatScore);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [startTime, isFinished]);
 
   useEffect(() => {
     const scrollHandler = () => {
@@ -96,15 +117,29 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, onComplete, title, isWarm
       e.preventDefault();
       if (!startTime) setStartTime(Date.now());
 
-      const tabSize = 4;
       let currentInput = userInput;
       let currentMistakes = mistakes;
-
-      for (let i = 0; i < tabSize; i++) {
-        if (currentInput.length >= text.length) break;
-        const nextChar = " ";
-        if (nextChar !== text[currentInput.length]) currentMistakes++;
-        currentInput += nextChar;
+      
+      // Smart Tab: Add spaces to match source text indentation, up to 4 spaces
+      let added = 0;
+      const maxTab = 4;
+      
+      while (added < maxTab && currentInput.length < text.length) {
+        const targetChar = text[currentInput.length];
+        if (targetChar === ' ') {
+          currentInput += ' ';
+          added++;
+        } else {
+          // If we encounter a non-space, only add spaces if we haven't added any yet
+          if (added === 0) {
+            for (let i = 0; i < maxTab; i++) {
+              if (currentInput.length >= text.length) break;
+              if (text[currentInput.length] !== ' ') currentMistakes++;
+              currentInput += ' ';
+            }
+          }
+          break;
+        }
       }
 
       setMistakes(currentMistakes);
@@ -128,11 +163,12 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, onComplete, title, isWarm
           const tokenEnd = globalIndex + token.length;
           globalIndex = tokenEnd;
 
+          const isWhitespace = /^\s+$/.test(token);
+
           // If the entire token is in the future, render it as a single span
-          // This prevents thousands of DOM nodes while keeping the whole text visible
           if (tokenStart > userInput.length) {
             return (
-              <span key={tIdx} className="text-gray-400">
+              <span key={tIdx} className={`text-gray-400 ${!isWhitespace ? 'inline-block' : ''}`}>
                 {token}
               </span>
             );
@@ -150,11 +186,12 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, onComplete, title, isWarm
 
             if (char === '\n') {
               return (
-                <span key={cIdx} className={`block relative h-[1.5em] ${isCurrent ? 'active-cursor' : ''} ${color}`}>
+                <span key={cIdx} className={`relative ${isCurrent ? 'active-cursor' : ''} ${color}`}>
                   {isCurrent && (
-                    <span className="absolute left-0 top-0 w-[2px] h-full bg-blue-500 animate-pulse" />
+                    <span className="absolute left-0 top-0 w-[2px] h-[1.2em] bg-blue-500 animate-pulse" />
                   )}
-                  <span className="opacity-30">↵</span>
+                  <span className="opacity-30 absolute pointer-events-none">↵</span>
+                  {char}
                 </span>
               );
             }
@@ -164,7 +201,7 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, onComplete, title, isWarm
                 {isCurrent && (
                   <span className="absolute left-0 top-0 w-[2px] h-full bg-blue-500 animate-pulse" />
                 )}
-                <span className={`${color} transition-colors duration-100 inline-block min-w-[0.6em]`}>
+                <span className={`${color} transition-colors duration-100`}>
                   {char}
                 </span>
               </span>
@@ -172,7 +209,7 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, onComplete, title, isWarm
           });
 
           return (
-            <span key={tIdx}>
+            <span key={tIdx} className={!isWhitespace ? 'inline-block' : ''}>
               {chars}
             </span>
           );
@@ -190,7 +227,10 @@ const TypingArea: React.FC<TypingAreaProps> = ({ text, onComplete, title, isWarm
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-blue-400">{title} {isWarmup && <span className="text-sm font-normal text-gray-500">(Warmup)</span>}</h2>
         {startTime && !isFinished && (
-          <div className="flex gap-4 text-sm font-mono">
+          <div className="flex gap-4 text-sm font-mono items-center">
+            <div className="bg-gray-900 px-3 py-1 rounded border border-gray-700">
+              <span className="text-red-400 font-bold">{Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}</span>
+            </div>
             <span className="text-green-400">WPM: {calculateStats().wpm}</span>
             <span className="text-yellow-400">Acc: {calculateStats().accuracy}%</span>
             <span className="text-blue-400 font-bold">PTS: {calculateStats().combatScore}</span>

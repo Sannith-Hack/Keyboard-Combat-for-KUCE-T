@@ -1,14 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
-import { useGameStore } from '../store/useGameStore';
-
-interface Competition {
-  id: string;
-  name: string;
-  status: 'draft' | 'live' | 'ended';
-  scheduled_start: string;
-}
+import { useGameStore, Competition } from '../store/useGameStore';
 
 interface LeaderboardEntry {
   id: string;
@@ -88,7 +81,10 @@ const Admin: React.FC = () => {
     const isoTime = new Date(newCompTime).toISOString();
     const { error } = await supabase
       .from('competitions')
-      .insert([{ name: newCompName, scheduled_start: isoTime }]);
+      .insert([{ 
+        name: newCompName, 
+        scheduled_start: isoTime
+      }]);
 
     if (!error) {
       setShowScheduleModal(false);
