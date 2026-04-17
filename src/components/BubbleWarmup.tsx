@@ -15,7 +15,8 @@ const BubbleWarmup: React.FC = () => {
   const [bubbles, setBubbles] = useState<Bubble[]>([]);
   const [score, setScore] = useState(0);
   const [globalTimeLeft, setGlobalTimeLeft] = useState<string>('');
-  const requestRef = useRef<number>();
+  const requestRef = useRef<number>(0);
+  
   const lastSpawnRef = useRef<number>(0);
 
   // 1. Global Sync with Competition Start (Only if in an actual competition)
